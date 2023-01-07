@@ -1,5 +1,5 @@
 {
-  "name": "@enraged-dun-cookie-development-team/node-common",
+  "name": "@enraged-dun-cookie-development-team/common",
   "version": "0.0.1",
   "description": "",
   "main": "src/index.ts",
