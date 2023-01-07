@@ -9,7 +9,7 @@ export default defineConfig([
     input: {
       index: 'src/index.ts',
     },
-    output: { dir: 'dist', format: 'esm', sourcemap: true },
+    output: { dir: 'dist', format: 'cjs', sourcemap: true },
     external: [
       "@sinclair/typebox",
       "@redis/client",
@@ -60,7 +60,7 @@ export default defineConfig([
     input: {
       'index.esm': 'src/index.ts',
     },
-    output: { dir: 'dist', format: 'cjs', sourcemap: true },
+    output: { dir: 'dist', format: 'esm', sourcemap: true },
     external: [
       "@sinclair/typebox",
       "@redis/client",
@@ -76,11 +76,11 @@ export default defineConfig([
   },
   {
     input: {
-      'env/index': 'src/env/index.ts',
-      'json/index': 'src/json/index.ts',
-      'logger/index': 'src/logger/index.ts',
-      'request/index': 'src/request/index.ts',
-      'redis/index': 'src/redis/index.ts',
+      'env/index.esm': 'src/env/index.ts',
+      'json/index.esm': 'src/json/index.ts',
+      'logger/index.esm': 'src/logger/index.ts',
+      'request/index.esm': 'src/request/index.ts',
+      'redis/index.esm': 'src/redis/index.ts',
     },
     output: {
       dir: 'dist',
