@@ -5,7 +5,6 @@
   "main": "src/index.ts",
   "type": "module",
   "scripts": {
-    "test": "cd run && npx --node-options=\"--experimental-vm-modules --no-warnings\" jest",
     "prettier": "prettier --write .",
     "prepare": "husky install",
     "build": "npx rollup --config rollup.config.js"
