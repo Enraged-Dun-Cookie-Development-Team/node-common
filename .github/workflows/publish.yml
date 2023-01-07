@@ -1,0 +1,51 @@
+name: publish
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'src/**'
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - run: npm ci
+      - run: npm test
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          registry-url: https://npm.pkg.github.com/
+      - run: npm ci
+      - run: npm run build
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+      - name: 发布到Github Packages
+        run: npm publish
+        working-directory: dist
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#   clean-old-packages:
+#     needs: publish
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: smartsquaregmbh/delete-old-packages@v0.6.0 # TODO 等actions/delete-package-versions@v3更新完支持npm之后就换成这个
+#         with:
+#           token: ${{ secrets.GITHUB_TOKEN }}
+#           organization: enraged-dun-cookie-development-team
+#           type: npm
+#           # 只保留最新3个版本
+#           keep: 3
+#           names: 'cookie-fetcher'
