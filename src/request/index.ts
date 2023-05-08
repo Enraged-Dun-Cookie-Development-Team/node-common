@@ -88,8 +88,8 @@ async function request(url: string | URL, options: CommonRequestOptions = { meth
  * @param options - 请求选项
  * @returns 响应内容
  */
-function get(url: string | URL, options: CommonRequestOptions = { method: 'GET' }): Promise<string> {
-  return request(url, options);
+function get(url: string | URL, options: CommonRequestOptions = {}): Promise<string> {
+  return request(url, { method: 'GET', ...options});
 }
 
 /**
@@ -99,8 +99,8 @@ function get(url: string | URL, options: CommonRequestOptions = { method: 'GET' 
  * @param options - 请求选项
  * @returns 响应内容
  */
-function post(url: string | URL, options: CommonRequestOptions = { method: 'POST' }): Promise<string> {
-  return request(url, options);
+function post(url: string | URL, options: CommonRequestOptions = {}): Promise<string> {
+  return request(url, { method: 'POST', ...options});
 }
 
 export const Http = {
