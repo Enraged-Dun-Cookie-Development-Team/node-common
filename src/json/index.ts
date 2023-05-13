@@ -6,7 +6,7 @@ type MyAjv = {
   errorMessagesToString(): string;
 } & Ajv;
 
-export const JsonValidator = addFormats(new Ajv({ allErrors: true }), ['ipv4']) as MyAjv;
+export const JsonValidator = addFormats(new Ajv({ allErrors: true, useDefaults: true }), ['ipv4']) as MyAjv;
 JsonValidator.addFormat('url', {
   type: 'string',
   validate: /^https?:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*(:\d{2,5})?(\/\S*)?$/,
