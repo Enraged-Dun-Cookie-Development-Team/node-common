@@ -114,7 +114,7 @@ function convertConfigType(config: ConfigObject, configType: TObject): ConfigVal
   for (const key in configType.properties) {
     const typeValue = configType.properties[key];
     let configValue: ConfigObject | PrimitiveTypes | (ConfigObject | PrimitiveTypes)[];
-    if (typeValue[Modifier]=='Optional') {
+    if (typeValue[Modifier]=='Optional' || typeValue['default']) {
         if (config[key]) {
             configValue = config[key];
         } else {
