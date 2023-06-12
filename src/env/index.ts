@@ -20,7 +20,9 @@ function isConfigObject(config: ConfigValue): config is ConfigObject {
 export function getConfigFromEnv<T>(configType: TObject, split = '__', prefix = ''): T {
   const envKeys = convertToEnvKey(configType, split, prefix);
   const envConfig = getEnvByKeys(envKeys);
+  console.log(envConfig)
   const configTemp = convertToConfig(envConfig, split, prefix);
+  console.log(configTemp)
   const config = convertConfigType(configTemp, configType);
   return config as T;
 }
