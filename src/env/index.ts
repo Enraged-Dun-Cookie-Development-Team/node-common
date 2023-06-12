@@ -18,7 +18,9 @@ function isConfigObject(config: ConfigValue): config is ConfigObject {
 
 // 封装传入配置获取环境变量中的配置
 export function getConfigFromEnv<T>(configType: TObject, split = '__', prefix = ''): T {
+  console.log(configType)
   const envKeys = convertToEnvKey(configType, split, prefix);
+  console.log(envKeys)
   const envConfig = getEnvByKeys(envKeys);
   console.log(envConfig)
   const configTemp = convertToConfig(envConfig, split, prefix);
@@ -50,6 +52,8 @@ function flattenToEnvKey(config: TObject, split: string): string[] {
 function getEnvByKeys(keys: Readonly<string[]>): Record<string, string> {
   const result: Record<string, string> = {};
   keys.forEach((key) => {
+    console.log(key)
+    console.log(process.env[key])
     if (process.env[key]) {
       result[key] = process.env[key] as string;
     }
