@@ -3,7 +3,7 @@ import { fetch, Request, Response } from 'cross-fetch';
 let defaultResponseTransformer = (response: Response) => response.text();
 let defaultUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36';
 
-export interface CommonRequestOptions extends RequestInit {
+export interface CommonRequestOptions<T = string> extends RequestInit {
   /**
    * 是否加时间戳，用于绕过缓存
    */
@@ -16,8 +16,9 @@ export interface CommonRequestOptions extends RequestInit {
    * 请求超时时间
    */
   timeout?: number;
-  responseTransformer?: typeof defaultResponseTransformer;
+  responseTransformer?: (response: Response) => Promise<T>;
 }
+// TODO 使用类型体操保证当且仅当responseTransformer设置时使用泛型，其它情况使用string
 
 /**
  * 创建一个请求，可选择是否加时间戳
@@ -26,7 +27,7 @@ export interface CommonRequestOptions extends RequestInit {
  * @param options - 请求选项
  * @returns 创建好的Request对象
  */
-function createRequest(reqUrl: string | URL, options: CommonRequestOptions): Request {
+function createRequest<T = string>(reqUrl: string | URL, options: CommonRequestOptions<T>): Request {
   const { appendTimestamp = false, timestampParamName = 't' } = options;
   const url = typeof reqUrl === 'string' ? new URL(reqUrl) : reqUrl;
   if (appendTimestamp) {
@@ -49,10 +50,14 @@ function createRequest(reqUrl: string | URL, options: CommonRequestOptions): Req
  * @param options - 请求选项
  * @returns 响应内容
  */
-async function request(url: string | URL, options: CommonRequestOptions = { method: 'GET' }): Promise<string> {
-  const { timeout } = options;
+async function request<T = string>(url: string | URL, options: CommonRequestOptions<T> = { method: 'GET' }): Promise<T> {
+  let { timeout } = options;
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  if (typeof timeout === 'number' && Number.isSafeInteger(timeout) && timeout > 0) {
+  if (!timeout) {
+    // 默认超时120秒
+    timeout = 120 * 1000;
+  }
+  if (Number.isSafeInteger(timeout) && timeout > 0) {
     // 这里用AbortSignal.timeout这个静态方法更简洁，但是浏览器至少是22年5月的版本才兼容这个方法，而且IDE似乎也不能识别这个方法(可能是哪里的设置没有用最新js版本？)
     const controller = new AbortController();
     options.signal = controller.signal;
@@ -66,7 +71,7 @@ async function request(url: string | URL, options: CommonRequestOptions = { meth
       if (options.responseTransformer) {
         return options.responseTransformer(res);
       }
-      return defaultResponseTransformer(res);
+      return defaultResponseTransformer(res) as unknown as T;
     })
     .catch((err: Error) => {
       if (err.name === 'AbortError') {
@@ -88,7 +93,7 @@ async function request(url: string | URL, options: CommonRequestOptions = { meth
  * @param options - 请求选项
  * @returns 响应内容
  */
-function get(url: string | URL, options: CommonRequestOptions = {}): Promise<string> {
+function get<T = string>(url: string | URL, options: CommonRequestOptions<T> = {}): Promise<T> {
   return request(url, { method: 'GET', ...options});
 }
 
@@ -99,7 +104,7 @@ function get(url: string | URL, options: CommonRequestOptions = {}): Promise<str
  * @param options - 请求选项
  * @returns 响应内容
  */
-function post(url: string | URL, options: CommonRequestOptions = {}): Promise<string> {
+function post<T = string>(url: string | URL, options: CommonRequestOptions<T> = {}): Promise<T> {
   return request(url, { method: 'POST', ...options});
 }
 
