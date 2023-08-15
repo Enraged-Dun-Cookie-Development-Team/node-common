@@ -16,6 +16,7 @@ export interface CommonRequestOptions<T = string> extends RequestInit {
    * 请求超时时间
    */
   timeout?: number;
+  useDefaultUserAgent?: boolean;
   responseTransformer?: (response: Response) => Promise<T>;
 }
 // TODO 使用类型体操保证当且仅当responseTransformer设置时使用泛型，其它情况使用string
@@ -28,7 +29,7 @@ export interface CommonRequestOptions<T = string> extends RequestInit {
  * @returns 创建好的Request对象
  */
 function createRequest<T = string>(reqUrl: string | URL, options: CommonRequestOptions<T>): Request {
-  const { appendTimestamp = false, timestampParamName = 't' } = options;
+  const { appendTimestamp = false, timestampParamName = 't', useDefaultUserAgent = true } = options;
   const url = typeof reqUrl === 'string' ? new URL(reqUrl) : reqUrl;
   if (appendTimestamp) {
     if (url.searchParams.has(timestampParamName)) {
@@ -37,8 +38,8 @@ function createRequest<T = string>(reqUrl: string | URL, options: CommonRequestO
     url.searchParams.set(timestampParamName, Date.now().toString());
   }
   const request = new Request(url, options);
-  if (!request.headers.has('User-Agent')) {
-    request.headers.set('User-Agent', defaultUserAgent);
+  if (useDefaultUserAgent  && !request.headers.has('user-agent')) {
+    request.headers.set('user-agent', defaultUserAgent);
   }
   return request;
 }
