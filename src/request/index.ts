@@ -30,7 +30,7 @@ export interface CommonRequestOptions<T = string> extends RequestInit {
  * @returns 创建好的Request对象
  */
 function createRequest<T = string>(reqUrl: string | URL, options: CommonRequestOptions<T>): Request {
-  const { appendTimestamp = false, timestampParamName = 't', useDefaultUserAgent = isBrowser } = options;
+  const { appendTimestamp = false, timestampParamName = 't', useDefaultUserAgent = !isBrowser } = options;
   const url = typeof reqUrl === 'string' ? new URL(reqUrl) : reqUrl;
   if (appendTimestamp) {
     if (url.searchParams.has(timestampParamName)) {
