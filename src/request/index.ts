@@ -1,4 +1,5 @@
 import { fetch, Request, Response } from 'cross-fetch';
+import { isBrowser } from "../util";
 
 let defaultResponseTransformer = (response: Response) => response.text();
 let defaultUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36';
@@ -29,7 +30,7 @@ export interface CommonRequestOptions<T = string> extends RequestInit {
  * @returns 创建好的Request对象
  */
 function createRequest<T = string>(reqUrl: string | URL, options: CommonRequestOptions<T>): Request {
-  const { appendTimestamp = false, timestampParamName = 't', useDefaultUserAgent = true } = options;
+  const { appendTimestamp = false, timestampParamName = 't', useDefaultUserAgent = isBrowser } = options;
   const url = typeof reqUrl === 'string' ? new URL(reqUrl) : reqUrl;
   if (appendTimestamp) {
     if (url.searchParams.has(timestampParamName)) {

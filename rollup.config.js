@@ -81,6 +81,7 @@ export default defineConfig([
       'logger/index.esm': 'src/logger/index.ts',
       'request/index.esm': 'src/request/index.ts',
       'redis/index.esm': 'src/redis/index.ts',
+      'util/index.esm': 'src/util/index.ts',
     },
     output: {
       dir: 'dist',
@@ -101,6 +102,7 @@ export default defineConfig([
       'logger/index': 'src/logger/index.ts',
       'request/index': 'src/request/index.ts',
       'redis/index': 'src/redis/index.ts',
+      'util/index': 'src/util/index.ts',
     },
     output: {
       dir: 'dist',
@@ -137,6 +139,11 @@ export default defineConfig([
           {
             src: 'src/common-package.json',
             dest: 'dist/redis',
+            rename: 'package.json',
+          },
+          {
+            src: 'src/common-package.json',
+            dest: 'dist/util',
             rename: 'package.json',
           },
         ],
