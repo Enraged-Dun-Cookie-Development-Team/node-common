@@ -1,5 +1,19 @@
-import { fetch, Request, Response } from 'cross-fetch';
+import * as crossFetch from 'cross-fetch';
 import { isBrowser } from "../util";
+
+let fetch: typeof globalThis.fetch;
+let Request: typeof globalThis.Request;
+let Response: typeof globalThis.Response;
+
+if (Object.hasOwn(globalThis, 'fetch')) {
+  fetch = globalThis.fetch;
+  Request = globalThis.Request;
+  Response = globalThis.Response;
+} else {
+  fetch = crossFetch.fetch;
+  Request = crossFetch.Request;
+  Response = crossFetch.Response;
+}
 
 let defaultResponseTransformer = (response: Response) => response.text();
 let defaultUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36';
