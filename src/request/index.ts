@@ -5,7 +5,7 @@ let fetch: typeof globalThis.fetch;
 let Request: typeof globalThis.Request;
 let Response: typeof globalThis.Response;
 
-if (Object.hasOwn(globalThis, 'fetch')) {
+if (typeof globalThis === 'object' && Object.prototype.hasOwnProperty.call(globalThis, 'fetch')) {
   fetch = globalThis.fetch;
   Request = globalThis.Request;
   Response = globalThis.Response;
