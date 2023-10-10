@@ -1,7 +1,6 @@
 {
   "sideEffects": false,
   "types": "./index.d.ts",
-  "type": "module",
   "exports": {
     "import": "./index.esm.js",
     "require": "./index.js"
