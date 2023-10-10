@@ -30,10 +30,6 @@ export default defineConfig([
       copy({
         targets: [
           {
-            src: '.npmrc',
-            dest: 'dist',
-          },
-          {
             src: 'package.json',
             dest: 'dist',
             transform: (contents) => {
