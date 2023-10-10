@@ -1,11 +1,15 @@
 name: publish
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
     paths:
       - 'src/**'
-  workflow_dispatch:
+      - 'package.json'
+      - 'tsconfig-prod.json'
+      - 'rollup.config.js'
+
 jobs:
   publish:
     runs-on: ubuntu-latest
