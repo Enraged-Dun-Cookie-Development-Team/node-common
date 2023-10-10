@@ -18,6 +18,12 @@ if (typeof globalThis === 'object' && Object.prototype.hasOwnProperty.call(globa
 let defaultResponseTransformer = (response: Response) => response.text();
 let defaultUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36';
 
+export class RequestError extends Error {
+  constructor(message: string, readonly response?: Response, readonly cause?: Error) {
+    super(message, cause);
+  }
+}
+
 export interface CommonRequestOptions<T = string> extends RequestInit {
   /**
    * 是否加时间戳，用于绕过缓存
@@ -84,6 +90,9 @@ async function request<T = string>(url: string | URL, options: CommonRequestOpti
   const request = createRequest(url, options);
   return await fetch(request)
     .then((res) => {
+      if (!res.ok) {
+        throw new RequestError('获取响应失败，可能是临时网络波动，如果长时间失败请联系开发者', res);
+      }
       if (options.responseTransformer) {
         return options.responseTransformer(res);
       }
@@ -91,7 +100,7 @@ async function request<T = string>(url: string | URL, options: CommonRequestOpti
     })
     .catch((err: Error) => {
       if (err.name === 'AbortError') {
-        throw new Error(`请求超时，强制停止请求(${String(timeout)}ms)`);
+        throw new RequestError(`请求超时，强制停止请求(${String(timeout)}ms)`);
       }
       throw err;
     })
@@ -135,4 +144,5 @@ export const Http = {
   setDefaultUserAgent(userAgent: string) {
     defaultUserAgent = userAgent;
   },
+  RequestError,
 };
