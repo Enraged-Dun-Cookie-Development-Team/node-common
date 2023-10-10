@@ -1,19 +1,16 @@
 {
   "compilerOptions": {
     "moduleResolution": "Node",
-    "module": "ES2022",
-    "target": "ES2022",
+    "module": "ESNext",
+    "target": "ESNext",
     "sourceRoot": "./src/",
-    "outDir": "./dist/",
     "sourceMap": true,
     "noImplicitAny": true,
     "allowJs": false,
     "strict": true,
-    "declaration": true,
-    "declarationDir": "./dist/",
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
-    "isolatedModules": false
+    "isolatedModules": false,
+    "lib": [ "ESNext", "webworker" ]
   },
-  "include": ["./src/"]
 }

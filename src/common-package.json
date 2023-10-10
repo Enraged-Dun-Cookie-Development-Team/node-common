@@ -1,6 +1,8 @@
 {
   "sideEffects": false,
-  "module": "./index.esm.js",
-  "main": "./index.js",
-  "types": "./index.d.ts"
+  "types": "./index.d.ts",
+  "exports": {
+    "import": "./index.esm.js",
+    "require": "./index.js"
+  }
 }

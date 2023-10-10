@@ -1,4 +1,4 @@
-import { createDefaultConsoleTransport, createLogger, LogLevel } from '../../src/common/logger';
+import { createDefaultConsoleTransport, createLogger, LogLevel } from '../../src/logger';
 import { HtmlReporterTransport } from './HtmlReporterTransport';
 
 import console from 'console';

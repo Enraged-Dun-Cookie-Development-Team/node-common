@@ -1,4 +1,4 @@
-import { LogItem, Transport } from '../../src/common/logger';
+import { LogItem, Transport } from '../../src/logger';
 
 const { addMsg } = await import('jest-html-reporters/helper');
 

@@ -1,7 +1,7 @@
 /**
  * 用于读取环境变量中的配置
  */
-import { Kind, Modifier, TObject, TSchema } from '@sinclair/typebox';
+import { Kind, Optional, TObject, TSchema } from "@sinclair/typebox";
 
 // 配置一些类型简化代码
 type PrimitiveTypes = string | number | boolean;
@@ -114,7 +114,7 @@ function convertConfigType(config: ConfigObject, configType: TObject): ConfigVal
   for (const key in configType.properties) {
     const typeValue = configType.properties[key];
     let configValue: ConfigObject | PrimitiveTypes | (ConfigObject | PrimitiveTypes)[];
-    if (typeValue[Modifier]=='Optional' || typeValue['default']) {
+    if (typeValue[Optional] == 'Optional' || typeValue['default']) {
         if (config[key]) {
             configValue = config[key];
         } else {
