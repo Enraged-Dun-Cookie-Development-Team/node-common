@@ -35,10 +35,8 @@ export default defineConfig([
             transform: (contents) => {
               const content = JSON.parse(contents.toString());
               content.types = 'index.d.js';
-              content.exports = {
-                import: './index.esm.js',
-                require: './index.js',
-              };
+              content.main = 'index.js';
+              content.module = 'index.esm.js';
               content.repository = 'https://github.com/Enraged-Dun-Cookie-Development-Team/node-common';
               const buildNumber = process.env.BUILD_NUMBER === 'dev' ? 'dev' : parseInt(process.env.BUILD_NUMBER || 'NaN');
               if (!(buildNumber > 0) && buildNumber !== 'dev') {
@@ -49,6 +47,7 @@ export default defineConfig([
                 throw `获取git hash失败：${hash}`;
               }
               content.version = `${content.version}-alpha.${buildNumber}+${hash}`;
+              delete content['type'];
               delete content['scripts'];
               delete content['lint-staged'];
               return JSON.stringify(content, null, 2);
