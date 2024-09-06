@@ -46,6 +46,8 @@ export interface CommonRequestOptions<T = string> extends RequestInit {
 }
 // TODO 使用类型体操保证当且仅当responseTransformer设置时使用泛型，其它情况使用string
 
+const globalOptions: CommonRequestOptions<never> = {};
+
 /**
  * 创建一个请求，可选择是否加时间戳
  *
@@ -73,29 +75,33 @@ function createRequest<T = string>(reqUrl: string | URL, options: CommonRequestO
  * 发送一个请求，可选择请求超时时间
  *
  * @param url - 请求地址
- * @param options - 请求选项
+ * @param _options - 请求选项
  * @returns 响应内容
  */
-async function request<T = string>(url: string | URL, options: CommonRequestOptions<T> = { method: 'GET' }): Promise<T> {
-  const { timeout = 120 * 1000, maxRetry = 0 } = options;
+async function request<T = string>(url: string | URL, _options: CommonRequestOptions<T> = { method: 'GET' }): Promise<T> {
+  const combineOptions: CommonRequestOptions<T> = {
+    ...globalOptions,
+    ..._options,
+  }
+  const { timeout = 120 * 1000, maxRetry = 0 } = combineOptions;
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const doReq = async () => {
     if (Number.isSafeInteger(timeout) && timeout > 0) {
       // 这里用AbortSignal.timeout这个静态方法更简洁，但是浏览器至少是22年5月的版本才兼容这个方法，而且IDE似乎也不能识别这个方法(可能是哪里的设置没有用最新js版本？)
       const controller = new AbortController();
-      options.signal = controller.signal;
+      combineOptions.signal = controller.signal;
       timeoutId = setTimeout(() => {
         controller.abort();
       }, timeout);
     }
-    const request = createRequest(url, options);
+    const request = createRequest(url, combineOptions);
     return await fetch(request)
       .then((res) => {
         if (!res.ok) {
           throw new RequestError('获取响应失败，可能是临时网络波动，如果长时间失败请联系开发者', res);
         }
-        if (options.responseTransformer) {
-          return options.responseTransformer(res);
+        if (combineOptions.responseTransformer) {
+          return combineOptions.responseTransformer(res);
         }
         return defaultResponseTransformer(res) as unknown as T;
       })
@@ -156,6 +162,7 @@ export const Http = {
   request,
   get,
   post,
+  globalOptions,
   setDefaultResponseTransformer(transformer: typeof defaultResponseTransformer) {
     defaultResponseTransformer = transformer;
   },
