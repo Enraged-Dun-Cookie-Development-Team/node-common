@@ -16,7 +16,7 @@ if (typeof globalThis === 'object' && Object.prototype.hasOwnProperty.call(globa
 }
 
 let defaultResponseTransformer = (response: Response) => response.text();
-let defaultUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36';
+let defaultUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
 
 export class RequestError extends Error {
   constructor(message: string, readonly response?: Response, readonly cause?: Error) {
@@ -66,7 +66,7 @@ function createRequest<T = string>(reqUrl: string | URL, options: CommonRequestO
 }
 
 /**
- * 创建一个请求，可选择请求超时时间
+ * 发送一个请求，可选择请求超时时间
  *
  * @param url - 请求地址
  * @param options - 请求选项
