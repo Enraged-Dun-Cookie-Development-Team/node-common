@@ -37,6 +37,10 @@ export interface CommonRequestOptions<T = string> extends RequestInit {
    * 请求超时时间
    */
   timeout?: number;
+  /**
+   * 最大重试次数
+   */
+  maxRetry?: number;
   useDefaultUserAgent?: boolean;
   responseTransformer?: (response: Response) => Promise<T>;
 }
@@ -73,42 +77,56 @@ function createRequest<T = string>(reqUrl: string | URL, options: CommonRequestO
  * @returns 响应内容
  */
 async function request<T = string>(url: string | URL, options: CommonRequestOptions<T> = { method: 'GET' }): Promise<T> {
-  let { timeout } = options;
+  const { timeout = 120 * 1000, maxRetry = 0 } = options;
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  if (!timeout) {
-    // 默认超时120秒
-    timeout = 120 * 1000;
+  const doReq = async () => {
+    if (Number.isSafeInteger(timeout) && timeout > 0) {
+      // 这里用AbortSignal.timeout这个静态方法更简洁，但是浏览器至少是22年5月的版本才兼容这个方法，而且IDE似乎也不能识别这个方法(可能是哪里的设置没有用最新js版本？)
+      const controller = new AbortController();
+      options.signal = controller.signal;
+      timeoutId = setTimeout(() => {
+        controller.abort();
+      }, timeout);
+    }
+    const request = createRequest(url, options);
+    return await fetch(request)
+      .then((res) => {
+        if (!res.ok) {
+          throw new RequestError('获取响应失败，可能是临时网络波动，如果长时间失败请联系开发者', res);
+        }
+        if (options.responseTransformer) {
+          return options.responseTransformer(res);
+        }
+        return defaultResponseTransformer(res) as unknown as T;
+      })
+      .catch((err: Error) => {
+        if (err.name === 'AbortError') {
+          throw new RequestError(`请求超时，强制停止请求(${String(timeout)}ms)`);
+        }
+        throw err;
+      })
+      .finally(() => {
+        if (typeof timeoutId !== 'undefined') {
+          clearTimeout(timeoutId);
+        }
+      });
   }
-  if (Number.isSafeInteger(timeout) && timeout > 0) {
-    // 这里用AbortSignal.timeout这个静态方法更简洁，但是浏览器至少是22年5月的版本才兼容这个方法，而且IDE似乎也不能识别这个方法(可能是哪里的设置没有用最新js版本？)
-    const controller = new AbortController();
-    options.signal = controller.signal;
-    timeoutId = setTimeout(() => {
-      controller.abort();
-    }, timeout);
+  if (Number.isSafeInteger(maxRetry) && maxRetry > 0) {
+    let counter = 0;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      counter++;
+      try {
+        return await doReq();
+      } catch (e) {
+        if (counter > maxRetry) {
+          throw e;
+        }
+      }
+    }
+  } else {
+    return await doReq();
   }
-  const request = createRequest(url, options);
-  return await fetch(request)
-    .then((res) => {
-      if (!res.ok) {
-        throw new RequestError('获取响应失败，可能是临时网络波动，如果长时间失败请联系开发者', res);
-      }
-      if (options.responseTransformer) {
-        return options.responseTransformer(res);
-      }
-      return defaultResponseTransformer(res) as unknown as T;
-    })
-    .catch((err: Error) => {
-      if (err.name === 'AbortError') {
-        throw new RequestError(`请求超时，强制停止请求(${String(timeout)}ms)`);
-      }
-      throw err;
-    })
-    .finally(() => {
-      if (typeof timeoutId !== 'undefined') {
-        clearTimeout(timeoutId);
-      }
-    });
 }
 
 /**
