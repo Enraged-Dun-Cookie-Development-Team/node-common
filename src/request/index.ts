@@ -127,6 +127,9 @@ async function request<T = string>(url: string | URL, _options: CommonRequestOpt
       } catch (e) {
         if (counter > maxRetry) {
           throw e;
+        } else {
+          console.log(`网络请求失败，进行第${counter}次重试，错误信息：`);
+          console.error(e);
         }
       }
     }
