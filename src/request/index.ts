@@ -98,7 +98,11 @@ async function request<T = string>(url: string | URL, _options: CommonRequestOpt
     return await fetch(request)
       .then((res) => {
         if (!res.ok) {
-          throw new RequestError('获取响应失败，可能是临时网络波动，如果长时间失败请联系开发者', res);
+          if (res.status >= 500 && res.status <= 599) {
+            throw new RequestError('获取响应失败，可能是临时网络波动，如果长时间失败请联系开发者', res);
+          } else {
+            throw new RequestError(`HTTP响应状态：${res.status}`, res);
+          }
         }
         if (combineOptions.responseTransformer) {
           return combineOptions.responseTransformer(res);
