@@ -1,26 +1,16 @@
-import * as crossFetch from 'cross-fetch';
+import { Cookie, CookieJar, canonicalDomain } from "tough-cookie";
+
 import { isBrowser } from "../util";
 
-let fetch: typeof globalThis.fetch;
-let Request: typeof globalThis.Request;
-let Response: typeof globalThis.Response;
+export type ResponseTransformer<T = string> = (response: Response, request: Request) => T | PromiseLike<T>;
 
-if (typeof globalThis === 'object' && Object.prototype.hasOwnProperty.call(globalThis, 'fetch')) {
-  fetch = globalThis.fetch;
-  Request = globalThis.Request;
-  Response = globalThis.Response;
-} else {
-  fetch = crossFetch.fetch;
-  Request = crossFetch.Request;
-  Response = crossFetch.Response;
-}
-
-let defaultResponseTransformer = (response: Response) => response.text();
+let defaultResponseTransformer: ResponseTransformer = (response: Response) => response.text();
 let defaultUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
 
 export class RequestError extends Error {
-  constructor(message: string, readonly response?: Response, readonly cause?: Error) {
+  constructor(message: string, readonly request: Request, readonly response?: Response, readonly cause?: Error) {
     super(message, cause);
+    this.name = this.constructor.name;
   }
 }
 
@@ -42,9 +32,8 @@ export interface CommonRequestOptions<T = string> extends RequestInit {
    */
   maxRetry?: number;
   useDefaultUserAgent?: boolean;
-  responseTransformer?: (response: Response) => Promise<T>;
+  responseTransformer?: ResponseTransformer<T>;
 }
-// TODO 使用类型体操保证当且仅当responseTransformer设置时使用泛型，其它情况使用string
 
 const globalOptions: CommonRequestOptions<never> = {};
 
@@ -78,47 +67,36 @@ function createRequest<T = string>(reqUrl: string | URL, options: CommonRequestO
  * @param _options - 请求选项
  * @returns 响应内容
  */
-async function request<T = string>(url: string | URL, _options: CommonRequestOptions<T> = { method: 'GET' }): Promise<T> {
+async function _request<T = string>(url: string | URL, _options: CommonRequestOptions<T> = { method: 'GET' }): Promise<T> {
   const combineOptions: CommonRequestOptions<T> = {
     ...globalOptions,
     ..._options,
   }
   const { timeout = 120 * 1000, maxRetry = 0 } = combineOptions;
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const doReq = async () => {
     if (Number.isSafeInteger(timeout) && timeout > 0) {
-      // 这里用AbortSignal.timeout这个静态方法更简洁，但是浏览器至少是22年5月的版本才兼容这个方法，而且IDE似乎也不能识别这个方法(可能是哪里的设置没有用最新js版本？)
-      const controller = new AbortController();
-      combineOptions.signal = controller.signal;
-      timeoutId = setTimeout(() => {
-        controller.abort();
-      }, timeout);
+      combineOptions.signal = AbortSignal.timeout(timeout);
     }
     const request = createRequest(url, combineOptions);
     return await fetch(request)
       .then((res) => {
         if (!res.ok) {
           if (res.status >= 500 && res.status <= 599) {
-            throw new RequestError('获取响应失败，可能是临时网络波动，如果长时间失败请联系开发者', res);
+            throw new RequestError(`请求失败(HTTP Status ${res.status})，可能是临时网络波动，如果长时间失败请联系开发者`, request, res);
           } else {
-            throw new RequestError(`HTTP响应状态：${res.status}`, res);
+            throw new RequestError(`HTTP响应状态：${res.status}`, request, res);
           }
         }
         if (combineOptions.responseTransformer) {
-          return combineOptions.responseTransformer(res);
+          return combineOptions.responseTransformer(res, request);
         }
-        return defaultResponseTransformer(res) as unknown as T;
+        return defaultResponseTransformer(res, request) as T;
       })
       .catch((err: Error) => {
         if (err.name === 'AbortError') {
-          throw new RequestError(`请求超时，强制停止请求(${String(timeout)}ms)`);
+          throw new RequestError(`请求超时，强制停止请求(${String(timeout)}ms)`, request);
         }
         throw err;
-      })
-      .finally(() => {
-        if (typeof timeoutId !== 'undefined') {
-          clearTimeout(timeoutId);
-        }
       });
   }
   if (Number.isSafeInteger(maxRetry) && maxRetry > 0) {
@@ -149,8 +127,8 @@ async function request<T = string>(url: string | URL, _options: CommonRequestOpt
  * @param options - 请求选项
  * @returns 响应内容
  */
-function get<T = string>(url: string | URL, options: CommonRequestOptions<T> = {}): Promise<T> {
-  return request(url, { method: 'GET', ...options});
+function _get<T = string>(url: string | URL, options: CommonRequestOptions<T> = {}): Promise<T> {
+  return _request(url, { method: 'GET', ...options});
 }
 
 /**
@@ -160,20 +138,76 @@ function get<T = string>(url: string | URL, options: CommonRequestOptions<T> = {
  * @param options - 请求选项
  * @returns 响应内容
  */
-function post<T = string>(url: string | URL, options: CommonRequestOptions<T> = {}): Promise<T> {
-  return request(url, { method: 'POST', ...options});
+function _post<T = string>(url: string | URL, options: CommonRequestOptions<T> = {}): Promise<T> {
+  return _request(url, { method: 'POST', ...options});
+}
+
+export class HttpClient {
+  cookieJar = new CookieJar(undefined, { prefixSecurity: "unsafe-disabled" });
+
+  private handleResponseSetCookie(response: Response, _url: string) {
+    const url = canonicalDomain(_url)!;
+    response.headers.getSetCookie()
+      .map(it => Cookie.parse(it))
+      .forEach(it => {
+        if (it) this.cookieJar.setCookieSync(it, url);
+      });
+  }
+
+  async request<T = string>(_url: string | URL, _options: CommonRequestOptions<T> = { method: "GET" }): Promise<T> {
+    const url = typeof _url === "string" ? new URL(_url) : _url;
+    const cookieUrl = canonicalDomain(url.toString())!;
+    const cookies = this.cookieJar.getCookiesSync(cookieUrl).map(it => [it.key, it.value]);
+    if (cookies.length > 0) {
+      const reqCookies = Object.fromEntries(cookies) as Record<string, string>;
+      const headers = new Headers(_options.headers);
+      const manualCookie = headers.get("cookie");
+      if (typeof manualCookie === "string") {
+        manualCookie.split(";")
+          .map(it => Cookie.parse(it))
+          .forEach(it => {
+            if (it) reqCookies[it.key] = it.value;
+          });
+      }
+      headers.set("Cookie", Object.entries(reqCookies)
+        .map(it => `${it[0]}=${it[1]}`)
+        .join("; ")
+      );
+      _options.headers = headers;
+    }
+    const oldTransformer = _options.responseTransformer ?? defaultResponseTransformer;
+    _options.responseTransformer = async (res, req) => {
+      this.handleResponseSetCookie(res, req.url);
+      return (await oldTransformer(res, req)) as T;
+    };
+    return _request(url, _options)
+      .catch((err: Error)=> {
+        if (err instanceof RequestError && err.response) {
+          this.handleResponseSetCookie(err.response, err.request.url);
+        }
+        throw err;
+      });
+  }
+
+  async get<T = string>(url: string | URL, options: CommonRequestOptions<T> = {}): Promise<T> {
+    return this.request(url, { method: 'GET', ...options});
+  }
+
+  async post<T = string>(url: string | URL, options: CommonRequestOptions<T> = {}): Promise<T> {
+    return this.request(url, { method: 'POST', ...options});
+  }
 }
 
 export const Http = {
   fetch,
-  request,
-  get,
-  post,
+  request: _request,
+  get: _get,
+  post: _post,
   globalOptions,
-  setDefaultResponseTransformer(transformer: typeof defaultResponseTransformer) {
+  setDefaultResponseTransformer: (transformer: typeof defaultResponseTransformer) => {
     defaultResponseTransformer = transformer;
   },
-  setDefaultUserAgent(userAgent: string) {
+  setDefaultUserAgent: (userAgent: string) => {
     defaultUserAgent = userAgent;
   },
   RequestError,
