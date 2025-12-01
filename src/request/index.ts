@@ -150,7 +150,7 @@ export class HttpClient {
     response.headers.getSetCookie()
       .map(it => Cookie.parse(it))
       .forEach(it => {
-        if (it) this.cookieJar.setCookieSync(it, url);
+        if (it) this.cookieJar.setCookieSync(it, url, { ignoreError: true });
       });
   }
 
